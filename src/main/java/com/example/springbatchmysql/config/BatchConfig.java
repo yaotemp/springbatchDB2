@@ -6,6 +6,7 @@ import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.database.JdbcCursorItemReader;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
@@ -16,12 +17,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
-import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import javax.sql.DataSource;
 import java.io.File;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+
+
 
 @Configuration
 @EnableBatchProcessing
@@ -34,7 +35,8 @@ public class BatchConfig {
     private StepBuilderFactory stepBuilderFactory;
 
     @Autowired
-    private DataSource dataSource;
+    @Qualifier("mysqlDataSource")
+    private DataSource mysqlDataSource;
 
     @Value("${output.csv.path}")
     private String outputCsvPath;
@@ -42,33 +44,25 @@ public class BatchConfig {
     @Bean
     public JdbcCursorItemReader<User> reader() {
         JdbcCursorItemReader<User> reader = new JdbcCursorItemReader<>();
-        reader.setDataSource(dataSource);
-        reader.setSql("SELECT ID, AGE, BIRTHDAY, COUNTRY, EMAIL, FIRST_NAME, GENDER, LAST_NAME, PERSON_ID FROM USERS");
-        reader.setRowMapper(new BeanPropertyRowMapper<>(User.class));
+        reader.setDataSource(mysqlDataSource);
+        reader.setSql("SELECT id, age, birthday, country, email, first_name, gender, last_name, person_id FROM USERS");
+        reader.setRowMapper(new BeanPropertyRowMapper<User>(User.class) {{
+            setMappedClass(User.class);
+            // If your database columns are snake_case but Java properties are camelCase
+            // This is needed in some Spring versions
+            setMappedClass(User.class);
+        }});
         return reader;
     }
 
     @Bean
     public FlatFileItemWriter<User> writer() {
         FlatFileItemWriter<User> writer = new FlatFileItemWriter<>();
-        
-        // Get current working directory
-        String currentDir = System.getProperty("user.dir");
-        
-        // Create output directory if it doesn't exist
-        File outputDir = new File(currentDir, "output");
-        if (!outputDir.exists()) {
-            boolean created = outputDir.mkdirs();
-            System.out.println("Output directory created: " + created + " at " + outputDir.getAbsolutePath());
-        } else {
-            System.out.println("Output directory already exists at: " + outputDir.getAbsolutePath());
+        File outputFile = new File(outputCsvPath);
+        File parentDir = outputFile.getParentFile();
+        if (!parentDir.exists()) {
+            parentDir.mkdirs();
         }
-        
-        // Create output file with absolute path
-        File outputFile = new File(outputDir, "users_output.csv");
-        System.out.println("Output file will be created at: " + outputFile.getAbsolutePath());
-        
-        // Use FileSystemResource with absolute path
         writer.setResource(new FileSystemResource(outputFile));
         writer.setAppendAllowed(false);
 
@@ -76,12 +70,16 @@ public class BatchConfig {
         lineAggregator.setDelimiter(",");
 
         BeanWrapperFieldExtractor<User> fieldExtractor = new BeanWrapperFieldExtractor<>();
-        fieldExtractor.setNames(new String[]{"id", "age", "birthday", "country", "email", "firstName", "gender", "lastName", "personId"});
+        fieldExtractor.setNames(new String[]{
+            "id", "age", "birthday", "country", "email", 
+            "firstName", "gender", "lastName", "personId"
+        });
         lineAggregator.setFieldExtractor(fieldExtractor);
 
         writer.setLineAggregator(lineAggregator);
-        writer.setHeaderCallback(writer1 -> writer1.write("ID,AGE,BIRTHDAY,COUNTRY,EMAIL,FIRST_NAME,GENDER,LAST_NAME,PERSON_ID"));
-        
+        writer.setHeaderCallback(writer1 -> 
+            writer1.write("ID,AGE,BIRTHDAY,COUNTRY,EMAIL,FIRST_NAME,GENDER,LAST_NAME,PERSON_ID")
+        );
         return writer;
     }
 
@@ -102,4 +100,4 @@ public class BatchConfig {
                 .end()
                 .build();
     }
-} 
+}
