@@ -9,7 +9,7 @@ import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.item.ItemStreamException;
 import org.springframework.batch.item.database.JdbcPagingItemReader;
 import org.springframework.batch.item.database.Order;
-import org.springframework.batch.item.database.support.MySqlPagingQueryProvider;
+import org.springframework.batch.item.database.support.Db2PagingQueryProvider;
 import org.springframework.batch.item.file.FlatFileItemWriter;
 import org.springframework.batch.item.file.transform.BeanWrapperFieldExtractor;
 import org.springframework.batch.item.file.transform.DelimitedLineAggregator;
@@ -68,14 +68,14 @@ public class BatchConfig {
         reader.setDataSource(db2DataSource);
         reader.setPageSize(50);
 
-        MySqlPagingQueryProvider queryProvider = new MySqlPagingQueryProvider();
-        queryProvider.setSelectClause("id, volume_serial, record_date, record_time, free_percentage, " +
-                "free_cylinder, cylinder_threshold, matched_volumes, volumes_below_threshold, " +
-                "current_available_chunks, next_1_day, next_7_days, next_30_days, " +
-                "next_60_days, next_90_days, next_180_days, created_at, updated_at");
+        Db2PagingQueryProvider queryProvider = new Db2PagingQueryProvider();
+        queryProvider.setSelectClause("ID, VOLUME_SERIAL, RECORD_DATE, RECORD_TIME, FREE_PERCENTAGE, " +
+                "FREE_CYLINDER, CYLINDER_THRESHOLD, MATCHED_VOLUMES, VOLUMES_BELOW_THRESHOLD, " +
+                "CURRENT_AVAILABLE_CHUNKS, NEXT_1_DAY, NEXT_7_DAYS, NEXT_30_DAYS, " +
+                "NEXT_60_DAYS, NEXT_90_DAYS, NEXT_180_DAYS, CREATED_AT, UPDATED_AT");
         queryProvider.setFromClause("CYLINDER_CHUNK_DAILY_RECORDS");
-        queryProvider.setSortKeys(Collections.singletonMap("id", Order.ASCENDING));
-
+        queryProvider.setSortKeys(Collections.singletonMap("ID", Order.ASCENDING));
+        
         reader.setQueryProvider(queryProvider);
         reader.setRowMapper(new BeanPropertyRowMapper<>(CylinderChunkDailyRecord.class));
         return reader;
