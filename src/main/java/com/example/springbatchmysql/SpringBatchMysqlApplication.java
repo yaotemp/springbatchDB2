@@ -5,9 +5,9 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 
@@ -18,7 +18,8 @@ public class SpringBatchMysqlApplication implements CommandLineRunner {
     private JobLauncher jobLauncher;
 
     @Autowired
-    private Job exportUserJob;
+    @Qualifier("exportCylinderChunkJob")
+    private Job exportCylinderChunkJob;
 
     public static void main(String[] args) {
         // Store the context so we can close it after the job completes
@@ -36,6 +37,6 @@ public class SpringBatchMysqlApplication implements CommandLineRunner {
                 .toJobParameters();
         
         // Run the job
-        jobLauncher.run(exportUserJob, jobParameters);
+        jobLauncher.run(exportCylinderChunkJob, jobParameters);
     }
 } 

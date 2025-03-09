@@ -15,7 +15,7 @@ import javax.sql.DataSource;
 @Configuration
 public class DataSourceConfig {
 
-    // ========== H2 数据源（Spring Batch 元数据）==========
+    // ========== H2 datasource (Spring Batch metadata) ==========
     @Bean
     @Primary
     @ConfigurationProperties("spring.datasource.h2")
@@ -30,17 +30,17 @@ public class DataSourceConfig {
         return h2DataSourceProperties().initializeDataSourceBuilder().build();
     }
 
-    // ========== MySQL 数据源（业务数据）==========
+    // ========== DB2 datasource (business data) ==========
     @Bean
-    @ConfigurationProperties("app.datasource.mysql")
-    public DataSourceProperties mysqlDataSourceProperties() {
+    @ConfigurationProperties("app.datasource.db2")
+    public DataSourceProperties db2DataSourceProperties() {
         return new DataSourceProperties();
     }
 
     @Bean
-    @Qualifier("mysqlDataSource")
-    public DataSource mysqlDataSource() {
-        return mysqlDataSourceProperties().initializeDataSourceBuilder().build();
+    @Qualifier("db2DataSource")
+    public DataSource db2DataSource() {
+        return db2DataSourceProperties().initializeDataSourceBuilder().build();
     }
     
     // Add a BatchConfigurer to explicitly set which DataSource to use for Spring Batch
