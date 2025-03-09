@@ -3,6 +3,8 @@ package com.example.springbatchmysql.model;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.Time;
 import java.util.Date;
 
@@ -26,4 +28,8 @@ public class CylinderChunkDailyRecord {
     private Integer next180Days;
     private Date createdAt;
     private Date updatedAt;
+    
+    // 添加 BLOB 和 CLOB 字段
+    private byte[] binaryData;  // 用于存储 BLOB 数据
+    private String textData;    // 用于存储 CLOB 数据
 } 

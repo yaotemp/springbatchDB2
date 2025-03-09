@@ -1,6 +1,8 @@
 package com.example.springbatchmysql.config;
 
 import com.example.springbatchmysql.model.CylinderChunkDailyRecord;
+import com.example.springbatchmysql.mapper.CylinderChunkRowMapper;
+import com.example.springbatchmysql.processor.CylinderChunkLineAggregator;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
@@ -68,16 +70,21 @@ public class BatchConfig {
         reader.setDataSource(db2DataSource);
         reader.setPageSize(50);
 
+        // Use Db2PagingQueryProvider for DB2
         Db2PagingQueryProvider queryProvider = new Db2PagingQueryProvider();
         queryProvider.setSelectClause("ID, VOLUME_SERIAL, RECORD_DATE, RECORD_TIME, FREE_PERCENTAGE, " +
                 "FREE_CYLINDER, CYLINDER_THRESHOLD, MATCHED_VOLUMES, VOLUMES_BELOW_THRESHOLD, " +
                 "CURRENT_AVAILABLE_CHUNKS, NEXT_1_DAY, NEXT_7_DAYS, NEXT_30_DAYS, " +
-                "NEXT_60_DAYS, NEXT_90_DAYS, NEXT_180_DAYS, CREATED_AT, UPDATED_AT");
+                "NEXT_60_DAYS, NEXT_90_DAYS, NEXT_180_DAYS, CREATED_AT, UPDATED_AT, " +
+                "BINARY_DATA, TEXT_DATA");
         queryProvider.setFromClause("CYLINDER_CHUNK_DAILY_RECORDS");
         queryProvider.setSortKeys(Collections.singletonMap("ID", Order.ASCENDING));
         
+        // 如果需要设置 schema
+        // queryProvider.setSchemaName("YOUR_SCHEMA");
+        
         reader.setQueryProvider(queryProvider);
-        reader.setRowMapper(new BeanPropertyRowMapper<>(CylinderChunkDailyRecord.class));
+        reader.setRowMapper(new CylinderChunkRowMapper());
         return reader;
     }
 
@@ -93,19 +100,9 @@ public class BatchConfig {
         writer.setResource(new FileSystemResource(outputFile));
         writer.setAppendAllowed(true);
 
-        DelimitedLineAggregator<CylinderChunkDailyRecord> lineAggregator = new DelimitedLineAggregator<>();
-        lineAggregator.setDelimiter(",");
-
-        BeanWrapperFieldExtractor<CylinderChunkDailyRecord> fieldExtractor = new BeanWrapperFieldExtractor<>();
-        fieldExtractor.setNames(new String[]{
-            "id", "volumeSerial", "recordDate", "recordTime", "freePercentage", 
-            "freeCylinder", "cylinderThreshold", "matchedVolumes", "volumesBelowThreshold",
-            "currentAvailableChunks", "next1Day", "next7Days", "next30Days",
-            "next60Days", "next90Days", "next180Days", "createdAt", "updatedAt"
-        });
-        lineAggregator.setFieldExtractor(fieldExtractor);
-
-        writer.setLineAggregator(lineAggregator);
+        // 使用自定义的 LineAggregator 处理 BLOB 和 CLOB 数据
+        writer.setLineAggregator(new CylinderChunkLineAggregator());
+        
         return writer;
     }
 
@@ -127,12 +124,13 @@ public class BatchConfig {
                     writer.write("ID,VOLUME_SERIAL,RECORD_DATE,RECORD_TIME,FREE_PERCENTAGE," +
                             "FREE_CYLINDER,CYLINDER_THRESHOLD,MATCHED_VOLUMES,VOLUMES_BELOW_THRESHOLD," +
                             "CURRENT_AVAILABLE_CHUNKS,NEXT_1_DAY,NEXT_7_DAYS,NEXT_30_DAYS," +
-                            "NEXT_60_DAYS,NEXT_90_DAYS,NEXT_180_DAYS,CREATED_AT,UPDATED_AT\n");
+                            "NEXT_60_DAYS,NEXT_90_DAYS,NEXT_180_DAYS,CREATED_AT,UPDATED_AT," +
+                            "BINARY_DATA,TEXT_DATA\n");
                 } catch (IOException e) {
                     throw new ItemStreamException("Failed to write CSV header", e);
                 }
             }
-
+            
             @Override
             public ExitStatus afterStep(StepExecution stepExecution) {
                 return ExitStatus.COMPLETED;
