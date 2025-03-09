@@ -7,7 +7,9 @@ import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ConfigurableApplicationContext;
 
 @SpringBootApplication
 public class SpringBatchMysqlApplication implements CommandLineRunner {
@@ -16,19 +18,24 @@ public class SpringBatchMysqlApplication implements CommandLineRunner {
     private JobLauncher jobLauncher;
 
     @Autowired
-    private Job job;
+    private Job exportUserJob;
 
     public static void main(String[] args) {
-        SpringApplication.run(SpringBatchMysqlApplication.class, args);
+        // Store the context so we can close it after the job completes
+        ConfigurableApplicationContext ctx = SpringApplication.run(SpringBatchMysqlApplication.class, args);
+        
+        // Exit code 0 means successful completion
+        System.exit(0);
     }
 
     @Override
     public void run(String... args) throws Exception {
-        // 使用时间戳参数运行作业
+        // Create job parameters with a timestamp to make each run unique
         JobParameters jobParameters = new JobParametersBuilder()
                 .addLong("time", System.currentTimeMillis())
                 .toJobParameters();
         
-        jobLauncher.run(job, jobParameters);
+        // Run the job
+        jobLauncher.run(exportUserJob, jobParameters);
     }
 } 
